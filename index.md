@@ -1,4 +1,4 @@
-## Welcome to GitHub Pages
+## Welcome to Cyclops 4 HPC code repository
 
 You can use the [editor on GitHub](https://github.com/Cyclops-Labs/cyclops-4-hpc/edit/gh-pages/index.md) to maintain and preview the content for your website in Markdown files.
 
