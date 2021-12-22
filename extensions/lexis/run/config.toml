@@ -1,0 +1,86 @@
+# Welcome to the configuration file for this
+#
+#  ██████╗██╗   ██╗ ██████╗██╗      ██████╗ ██████╗ ███████╗
+# ██╔════╝╚██╗ ██╔╝██╔════╝██║     ██╔═══██╗██╔══██╗██╔════╝
+# ██║      ╚████╔╝ ██║     ██║     ██║   ██║██████╔╝███████╗
+# ██║       ╚██╔╝  ██║     ██║     ██║   ██║██╔═══╝ ╚════██║
+# ╚██████╗   ██║   ╚██████╗███████╗╚██████╔╝██║     ███████║
+#  ╚═════╝   ╚═╝    ╚═════╝╚══════╝ ╚═════╝ ╚═╝     ╚══════╝
+#
+# ██╗      █████╗ ██████╗ ███████╗
+# ██║     ██╔══██╗██╔══██╗██╔════╝
+# ██║     ███████║██████╔╝███████╗
+# ██║     ██╔══██║██╔══██╗╚════██║
+# ███████╗██║  ██║██████╔╝███████║
+# ╚══════╝╚═╝  ╚═╝╚═════╝ ╚══════╝
+#
+# uService!
+
+[APIKEY]
+Enabled	= true
+Key     = "X-API-KEY"
+Place   = "header"
+Token   = "1234567890abcdefghi"
+
+[DATABASE]
+# Duration style: Xh, Xm, Xs...
+CacheRetention = "24h"
+
+[GENERAL]
+CertificateFile    = "./cert.crt"
+CertificateKey     = "./key.key"
+CORSEnabled        = false
+CORSHeaders        = [ "*" ]
+CORSMethods        = [ "GET", "POST" ]
+CORSOrigins        = [ "" ]
+HttpsEnabled       = false
+InsecureSkipVerify = false
+LogFile            = "./SERVICE.log"
+# LogLevel = TRACE | DEBUG | INFO | WARNING | ERROR
+LogLevel           = "TRACE"
+LogToConsole       = true
+ServerPort         = 8000
+
+[GENERAL.SERVICES]
+Billing       = "billing:8001"
+CDR           = "cdr:8002"
+CreditSystem  = "creditsystem:8003"
+CustomerDB    = "customerdb:8004"
+EventsEngine  = "eventsengine:8005"
+PlanManager   = "planmanager:8006"
+UDR           = "udr:8007"
+
+[KEYCLOAK]
+ClientID     = "CyclopsDeploy"
+ClientSecret = "093d537e-205e-4a4c-94c6-3d9b744e2675"
+Enabled      = true
+Host         = "keycloak"
+Port         = 8000
+Realm        = "Development"
+RedirectURL  = ""
+UseHttp      = true
+
+[OPENSTACK]
+Domain   = ""
+Filters  = [ "filter1", "filter2", "filter3" ]
+Keystone = ""
+Password = ""
+Project  = ""
+Regions  = [ "Region1", "Region2" ]
+User     = ""
+
+[SKUS]
+SKUs = [ "vcpu", "ram", "rootdisk", "ephemeraldisk", "floatingip", "blockstorage", "objectstorage", "license", "titanxp", "t4", "p100", "rootdisk_ssd", "ephemeraldisk_ssd", "blockstorage_ssd" ]
+
+[PRICES]
+BLOCKSTORAGE      = 0
+BLOCKSTORAGE_SSD  = 0
+EPHEMERALDISK     = 0
+EPHEMERALDISK_SSD = 0
+FLOATINGIP        = 0
+LICENSE           = 0
+OBJECTSTORAGE     = 0
+RAM               = 0
+ROOTDISK          = 0
+ROOTDISK_SSD      = 0
+VCPU              = 0

@@ -1,0 +1,389 @@
+---
+swagger: "2.0"
+host: "localhost:8000"
+basePath: "/api/v0.1"
+info:
+  description: An API which supports creation, deletion, listing etc of SERVICE
+  version: "0.1.0"
+  title: LEXIS Extension Management API
+  contact:
+    email: diego@cyclops-labs.io
+  license:
+    name: Apache 2.0
+    url: 'http://www.apache.org/licenses/LICENSE-2.0.html'
+
+tags:
+  - name: statusManagement
+    description: Actions relating to the reporting of the state of the service
+  - name: syncManagement
+    description: Actions relating to the syncing of data from LEXIS into cyclops services.
+  - name: triggerManagement
+    description: Actions relating to the periodics actions to be triggered in the system
+
+securityDefinitions:
+  APIKeyHeader:
+    type: apiKey
+    in: header
+    name: X-API-KEY
+  APIKeyParam:
+    type: apiKey
+    in: query
+    name: api_key
+  Keycloak:
+    type: oauth2
+    flow:  accessCode
+    authorizationUrl: 'http://localhost:8080/auth/realms/Dev/protocol/openid-connect/auth'
+    tokenUrl: 'http://localhost:8080/auth/realms/Dev/protocol/openid-connect/token'
+    scopes:
+      admin: Admin scope
+      user: User scope
+
+schemes:
+  - http
+  - https
+
+security:
+  - Keycloak: [user,admin]
+  - APIKeyHeader: []
+  - APIKeyParam: []
+
+paths:
+  /status:
+    get:
+      tags:
+        - statusManagement
+      produces:
+        - application/json
+      summary: Basic status of the system
+      operationId: showStatus
+      responses:
+        '200':
+          description: Status information of the system
+          schema:
+            $ref: "#/definitions/Status"
+  /status/{id}:
+    get:
+      tags:
+        - statusManagement
+      produces:
+        - application/json
+      summary: Basic status of the system
+      operationId: getStatus
+      responses:
+        '200':
+          description: Status information of the system
+          schema:
+            $ref: "#/definitions/Status"
+        '404':
+          description: The endpoint provided doesn't exist
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+      parameters:
+        - name: id
+          in: path
+          type: string
+          enum:
+          - kafka-receiver
+          - kafka-sender
+          - status
+          - trigger
+          - metrics
+          - sync
+          required: true
+          description: Id of the endpoint to be checked
+
+  /trigger/udrsredo:
+    get:
+      tags:
+        - triggerManagement
+      produces:
+        - application/json
+      summary: Redo of UDRs from the specific dates and with the specifc interval
+      security:
+        - Keycloak: [user]
+        - APIKeyHeader: []
+        - APIKeyParam: []
+      operationId: UDRRedo
+      responses:
+        '200':
+          description: Generation task executed successfully.
+          schema:
+            $ref: "#/definitions/ItemCreatedResponse"
+        '500':
+          description: Something unexpected happend, error raised
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+      parameters:
+        - name: from
+          in: query
+          description: Datetime from which to regenerate the udrs
+          type: string
+          format: datetime
+        - name: to
+          in: query
+          description: Datetime until which to regenerate the udrs
+          type: string
+          format: datetime
+        - name: interval
+          in: query
+          description: Interval to do increments
+          type: string
+
+  /sync/hierarchy:
+    get:
+      tags:
+        - syncManagement
+      produces:
+        - application/json
+      summary: syncs all the organizations, projects, resources hierarchy from LEXIS
+      operationId: syncHierarchy
+      responses:
+        '200':
+          description: The load of data was completely successfully
+        '202':
+          description: Operation done but there might have been some fails when adding part of the data
+        '500':
+          description: Something unexpected happend, error raised
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+
+  /sync/flavors:
+    get:
+      tags:
+        - syncManagement
+      produces:
+        - application/json
+      summary: Sync the OpenStack's flavors data in the system
+      operationId: syncFlavors
+      responses:
+        '200':
+          description: The load of data was completely successfully
+        '202':
+          description: Operation done but there might have been some fails when adding part of the data
+        '500':
+          description: Something unexpected happend, error raised
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+
+definitions:
+  ErrorResponse:
+    type: object
+    required:
+      - errorString
+    properties:
+      errorString:
+        type: string
+  ItemCreatedResponse:
+    properties:
+      Message:
+        type: string
+  Metadata:
+    type: object
+    x-go-type:
+      import:
+        package: "gitlab.com/cyclops-utilities/datamodels"
+      type: JSONdb
+  StringArray:
+    x-go-type:
+      import:
+        package: "github.com/lib/pq"
+      type: StringArray
+  Status:
+    type: object
+    required:
+      - SystemState
+    properties:
+      AverageResponseTime:
+        type: number
+        format: double
+      DBState:
+        type: string
+      LastRequest:
+        type: string
+      RequestsBoT:
+        type: integer
+      RequestsLastHour:
+        type: integer
+      RequestsToday:
+        type: integer
+      SystemState:
+        type: string
+
+  #User-Org:
+  Organization:
+    type: object
+    properties:
+      ID:
+        type: string
+        format: uuid
+        x-go-custom-tag: gorm:"type:uuid;primary_key;unique;default:md5(random()::text || clock_timestamp()::text)::uuid"
+      FormalName:
+        type: string
+        x-go-custom-tag: gorm:"column:formalname"
+      RegisteredAddress1:
+        type: string
+        x-go-custom-tag: gorm:"column:registeredaddress1"
+      RegisteredAddress2:
+        type: string
+        x-go-custom-tag: gorm:"column:registeredaddress2"
+      RegisteredAddress3:
+        type: string
+        x-go-custom-tag: gorm:"column:registeredaddress3"
+      RegisteredCountry:
+        type: string
+        format: country
+        x-go-custom-tag: gorm:"column:registeredcountry"
+      CreationDate:
+        type: string
+        format: date-time
+        x-go-custom-tag: gorm:"column:registrationdatetime;type:timestamptz"
+      CreatedBy:
+        # userid who created this organization
+        type: string
+        format: uuid
+        x-go-custom-tag: gorm:"column:createdby;type:uuid"
+      Website:
+        type: string
+        format: url
+      OrganizationEmailAddress:
+        type: string
+        format: email
+        x-go-custom-tag: gorm:"column:organizationemailaddress"
+      PrimaryTelephoneNumber:
+        type: string
+        format: telephone-number
+        x-go-custom-tag: gorm:"column:primarytelephonenumber"
+      VATRegistrationNumber:
+        type: string
+        x-go-custom-tag: gorm:"column:vatregistrationnumber"
+      OrganizationStatus:
+        type: string
+        enum:
+        - PENDING_APPROVAL
+        - APPROVED
+        - DISABLED
+        - TERMINATED
+        x-go-custom-tag: gorm:"column:organizationstatus"
+
+  Project:
+    type: object
+    properties:
+      ProjectID:
+        type: string
+        format: uuid
+        x-go-custom-tag: gorm:"column:projectid;type:uuid;primary_key;unique;default:md5(random()::text || clock_timestamp()::text)::uuid"
+      ProjectName:
+        type: string
+        x-go-custom-tag: gorm:"column:projectname"
+      ProjectShortName:
+        type: string
+        x-go-custom-tag: gorm:"column:projectshortname;unique"
+      ProjectDescription:
+        type: string
+        x-go-custom-tag: gorm:"column:projectdescription"
+      ProjectCreationTime:
+        type: string
+        format: date-time
+        x-go-custom-tag: gorm:"column:projectcreationtime;type:timestamptz;default:now()"
+      ProjectCreatedBy:
+        type: string
+        format: uuid
+        x-go-custom-tag: gorm:"column:projectcreatedby;type:uuid"
+      LinkedOrganization:
+        type: string
+        format: uuid
+        x-go-custom-tag: gorm:"column:linkedorganization;type:uuid"
+      AllowedOrganizations:
+        $ref: '#/definitions/StringArray'
+        x-go-custom-tag: gorm:"column:allowedorganizations;type:text[]"
+      ProjectStatus:
+        type: string
+        enum:
+        - PENDING
+        - ACTIVE
+        - DISABLED
+        - TERMINATED
+        x-go-custom-tag: gorm:"column:projectstatus"
+      ProjectContactPerson:
+        type: string
+        format: uuid
+        x-go-custom-tag: gorm:"column:projectcontactperson;type:uuid"
+      ProjectStartDate:
+        type: string
+        format: date-time
+        x-go-custom-tag: gorm:"column:projectstartdate;type:timestamptz"
+      ProjectTerminationDate:
+        type: string
+        format: date-time
+        x-go-custom-tag: gorm:"column:projectterminationdate;type:timestamptz"
+      ProjectMaxPrice:
+        type: number
+        format: double
+        default: 0.0
+        x-nullable: true
+        x-go-custom-tag: gorm:"column:projectmaxprice;type:float8;default:0.0"
+      NormCoreHours:
+        type: integer
+        default: 0
+        x-nullable: true
+        x-go-custom-tag: gorm:"column:normcorehours;default:0"
+      ProjectContactEmail:
+        type: string
+        format: email
+        x-go-custom-tag: gorm:"column:projectcontactemail"
+      ProjectDomain:
+        type: string
+        x-go-custom-tag: gorm:"column:projectdomain"
+
+  HPCResource:
+    type: object
+    properties:
+      HPCResourceID:
+        type: string
+        x-go-custom-tag: gorm:"column:hpcresourceid;primary_key;unique;default:md5(random()::text || clock_timestamp()::text)::uuid"
+      AssociatedHPCProject:
+        type: string
+        x-go-custom-tag: gorm:"column:associatedhpcproject"
+      AssociatedLEXISProject:
+        type: string
+        format: uuid
+        x-go-custom-tag: gorm:"column:associatedlexisproject;type:uuid"
+      ApprovalStatus:
+        type: string
+        enum:
+        - ACCEPTED
+        - REJECTED
+        - PENDING
+        x-go-custom-tag: gorm:"column:approvalstatus"
+      CloudNetworkName:
+        type: string
+        x-go-custom-tag: gorm:"column:cloudnetworkname"
+      ProjectNetworkName:
+        type: string
+        x-go-custom-tag: gorm:"column:projectnetworkname"
+      HEAppEEndpoint:
+        type: string
+        x-go-custom-tag: gorm:"column:heappeendpoint"
+      HPCProvider:
+        type: string
+        enum:
+        - IT4I
+        - LRZ
+        - ICHEC
+        x-go-custom-tag: gorm:"column:hpcprovider"
+      OpenStackEndpoint:
+        type: string
+        x-go-custom-tag: gorm:"column:openstackendpoint"
+      OpenStackProjectID:
+        type: string
+        x-go-custom-tag: gorm:"column:openstackprojectid"
+      ResourceType:
+        type: string
+        enum:
+        - CLOUD
+        - HPC
+        x-go-custom-tag: gorm:"column:resourcetype"
+      TermsConsent:
+        type: boolean
+        x-go-custom-tag: gorm:"column:termsconsent;type:bool"
+
