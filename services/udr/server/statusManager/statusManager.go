@@ -238,6 +238,9 @@ func (m *StatusManager) APIHit(index string, t time.Time) {
 
 	}
 
+	key := fmt.Sprintf("%v_%v", index, t.UnixNano())
+
+	mutex.Lock()
 	// First we update the general count
 	mon.db["main"].last = t.String()
 	mon.db["main"].BoT++
@@ -248,10 +251,8 @@ func (m *StatusManager) APIHit(index string, t time.Time) {
 	mon.db[index].BoT++
 	mon.db[index].day[t.Hour()]++
 
-	key := fmt.Sprintf("%v_%v", index, t.UnixNano())
-
-	mutex.Lock()
 	avgTime[key] = t.UnixNano()
+
 	mutex.Unlock()
 
 	return
@@ -279,14 +280,16 @@ func (m *StatusManager) APIHitDone(index string, t time.Time) {
 		to := float64(time.Now().UnixNano())
 		from := float64(previous)
 
+		mutex.Lock()
+
 		avg := float64((mon.db[index].AvgTime*float64(mon.db[index].day[t.Hour()]-1) + (to-from)/float64(time.Millisecond)) / float64(mon.db[index].day[t.Hour()]))
 		avgSystem := float64((mon.db[index].AvgTime*float64(mon.db["main"].day[t.Hour()]-1) + (to-from)/float64(time.Millisecond)) / float64(mon.db["main"].day[t.Hour()]))
 
 		mon.db[index].AvgTime = avg
 		mon.db["main"].AvgTime = avgSystem
 
-		mutex.Lock()
 		delete(avgTime, key)
+
 		mutex.Unlock()
 
 		m.db.Metrics["time"].With(prometheus.Labels{"type": "Service average response time for endpoint " + index}).Set(avg)
@@ -312,7 +315,11 @@ func (m *StatusManager) cleanCount(h int) {
 
 			if idx != h {
 
+				mutex.Lock()
+
 				mon.db[key].day[idx] = 0
+
+				mutex.Unlock()
 
 			}
 

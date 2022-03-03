@@ -734,25 +734,57 @@ PlanDefault:
 
 		var value interface{}
 
-		mode := *skus[report.Usage[i].ResourceType].AccountingMode
+		sku, exists := skus[report.Usage[i].ResourceType]
 
-		if mode == AC_CREDIT || mode == AC_BOTH {
+		if exists {
 
-			for _, j := range states {
+			mode := *sku.AccountingMode
 
-				value = report.Usage[i].UsageBreakup[j]
+			if mode == AC_CREDIT || mode == AC_BOTH {
 
-				if value == nil {
+				for _, j := range states {
 
-					l.Debug.Printf("[DB] The state [ %v ] seem to not be part of the usage UsageBreakup [ %+v ], skipping...", j, report.Usage[i].UsageBreakup)
+					value = report.Usage[i].UsageBreakup[j]
 
-					continue
+					if value == nil {
+
+						l.Debug.Printf("[DB] The state [ %v ] seem to not be part of the usage UsageBreakup [ %+v ], skipping...", j, report.Usage[i].UsageBreakup)
+
+						continue
+
+					}
+
+					if k := reflect.ValueOf(value); k.Kind() == reflect.Float64 {
+
+						creditDelta += value.(float64) * skus[report.Usage[i].ResourceType].UnitCreditPrice
+
+						continue
+
+					}
+
+					v, e := value.(json.Number).Float64()
+
+					if e != nil {
+
+						l.Warning.Printf("[DB] There was a problem retrieving the float value from the usagebreakup interface. Error: %v.\n", e)
+
+						return e
+
+					}
+
+					creditDelta += v * skus[report.Usage[i].ResourceType].UnitCreditPrice
 
 				}
 
+			}
+
+			if mode == AC_CASH || mode == AC_BOTH {
+
+				value = report.Usage[i].Cost["totalFromSku"]
+
 				if k := reflect.ValueOf(value); k.Kind() == reflect.Float64 {
 
-					creditDelta += value.(float64) * skus[report.Usage[i].ResourceType].UnitCreditPrice
+					cashDelta += value.(float64)
 
 					continue
 
@@ -762,41 +794,103 @@ PlanDefault:
 
 				if e != nil {
 
-					l.Warning.Printf("[DB] There was a problem retrieving the float value from the usagebreakup interface. Error: %v.\n", e)
+					l.Warning.Printf("[DB] There was a problem retrieving the float value from the cost interface. Error: %v.\n", e)
 
 					return e
 
 				}
 
-				creditDelta += v * skus[report.Usage[i].ResourceType].UnitCreditPrice
+				cashDelta += v
 
 			}
 
-		}
+		} else {
 
-		if mode == AC_CASH || mode == AC_BOTH {
+			states_string := strings.Join(states, " ")
 
-			value = report.Usage[i].Cost["totalFromSku"]
+			if report.Usage[i].Cost["costBreakup"] != nil {
 
-			if k := reflect.ValueOf(value); k.Kind() == reflect.Float64 {
+				for _, unit := range report.Usage[i].Cost["costBreakup"].([]interface{}) {
 
-				cashDelta += value.(float64)
+					sku := unit.(map[string]interface{})
 
-				continue
+					model, exists := skus[sku["sku"].(string)]
+
+					if exists {
+
+						mode := *model.AccountingMode
+
+						if mode == AC_CREDIT || mode == AC_BOTH {
+
+							if strings.Contains(states_string, sku["sku-state"].(string)) {
+
+								value = report.Usage[i].UsageBreakup[sku["sku-state"].(string)]
+
+								if value == nil {
+
+									l.Debug.Printf("[DB] The state [ %v ] seem to not be part of the usage UsageBreakup [ %+v ], skipping...", sku["sku-state"], report.Usage[i].UsageBreakup)
+
+									goto OutOfCREDIT
+
+								}
+
+								if k := reflect.ValueOf(value); k.Kind() == reflect.Float64 {
+
+									creditDelta += value.(float64) * skus[sku["sku"].(string)].UnitCreditPrice
+
+									goto OutOfCREDIT
+
+								}
+
+								v, e := value.(json.Number).Float64()
+
+								if e != nil {
+
+									l.Warning.Printf("[DB] There was a problem retrieving the float value from the usagebreakup interface. Error: %v.\n", e)
+
+									return e
+
+								}
+
+								creditDelta += v * skus[sku["sku"].(string)].UnitCreditPrice
+
+							}
+
+						}
+
+					OutOfCREDIT:
+
+						if mode == AC_CASH || mode == AC_BOTH {
+
+							value = sku["sku-cost"]
+
+							if k := reflect.ValueOf(value); k.Kind() == reflect.Float64 {
+
+								cashDelta += value.(float64)
+
+								continue
+
+							}
+
+							v, e := value.(json.Number).Float64()
+
+							if e != nil {
+
+								l.Warning.Printf("[DB] There was a problem retrieving the float value from the cost interface. Error: %v.\n", e)
+
+								return e
+
+							}
+
+							cashDelta += v
+
+						}
+
+					}
+
+				}
 
 			}
-
-			v, e := value.(json.Number).Float64()
-
-			if e != nil {
-
-				l.Warning.Printf("[DB] There was a problem retrieving the float value from the cost interface. Error: %v.\n", e)
-
-				return e
-
-			}
-
-			cashDelta += v
 
 		}
 

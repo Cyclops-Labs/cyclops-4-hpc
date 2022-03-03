@@ -101,7 +101,9 @@ func kafkaStart(db *dbManager.DbParameter, mon *statusManager.StatusManager) (ch
 
 	f := func(db *dbManager.DbParameter, model interface{}) (e error) {
 
-		if e = db.ProcessCDR(*model.(*cdrModels.CReport), ""); e != nil {
+		cdr := *model.(*cdrModels.CReport)
+
+		if e = db.ProcessCDR(cdr, ""); e != nil {
 
 			l.Warning.Printf("[KAFKA] There was an error while apliying the linked function. Error: %v\n", e)
 

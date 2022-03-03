@@ -19,9 +19,9 @@ require (
 	github.com/segmentio/kafka-go v0.4.25
 	github.com/spf13/viper v1.10.1
 	gitlab.com/cyclops-utilities/datamodels v0.0.0-20191016132854-e9313e683e5b
-	github.com/Cyclops-Labs/cyclops-4-hpc.git/services/customerdb v0.0.1
-	github.com/Cyclops-Labs/cyclops-4-hpc.git/services/plan-manager v0.0.1
-	github.com/Cyclops-Labs/cyclops-4-hpc.git/services/udr v0.0.1
+	github.com/Cyclops-Labs/cyclops-4-hpc.git/services/customerdb v0.0.2
+	github.com/Cyclops-Labs/cyclops-4-hpc.git/services/plan-manager v0.0.2
+	github.com/Cyclops-Labs/cyclops-4-hpc.git/services/udr v0.0.2
 	gitlab.com/cyclops-utilities/logging v0.0.0-20200914110347-ca1d02efd346
 	gorm.io/driver/postgres v1.2.3
 	gorm.io/gorm v1.22.4
